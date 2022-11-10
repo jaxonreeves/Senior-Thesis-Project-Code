@@ -86,14 +86,22 @@ starting_hands <- list(rolled_up,
                        two_to_straight,
                        high_card)
 
+# TODO: make function to run simulation of single head-to-head
+# TODO: make function to run simulation of all 36 head-to-head (by calling above function)
+
 ## RUN SIMULATION TO ESTIMATE HEAD TO HEAD PROBABILITY
 # Choose starting hand categories
 player1_category <- starting_hands[[1]]
 player2_category <- starting_hands[[1]]
 
-# Deal two players starting hands from chosen category
-starter_hands <- list(player1 = sample(player1_category,1)[[1]],
-                      player2 = sample(player2_category,1)[[1]])
+# Deal two players starting hands from chosen category and ensure no duplicate cards
+player1 <- sample(player1_category,1)[[1]]
+player2 <- sample(player2_category,1)[[1]]
+starter_hands <- list(player1 = player1, player2 = player2)
+while (any(duplicated(unlist(starter_hands)))) {
+    player2 <- sample(player2_category,1)[[1]]
+    starter_hands <- list(player1 = player1, player2 = player2)
+}
 
 # Convert the starter hands to numeric
 starter_hands <- lapply(starter_hands, function(x){
@@ -102,11 +110,11 @@ starter_hands <- lapply(starter_hands, function(x){
 all(!duplicated(unlist(starter_hands) )) # check: are all cards unique? (should be TRUE)
 remaining_cards <- setdiff(0:51, unlist(starter_hands))
 
-# Define sample size n
-n <- 1000
+# Define sample size m for round simulation using current pair of starting hands
+m <- 1000
 
 # Simulate the next 4 cards for each player
-hands4 <- lapply(1:n, function(x){
+hands4 <- lapply(1:m, function(x){
   sample(remaining_cards, 4)
 })
 hands_player1 <- sapply(hands4, 
@@ -118,7 +126,7 @@ hands_player2 <- sapply(hands4,
                           evaluate_7cards(c(starter_hands$player2, x))
                         })
 
-# Compare winners across n rounds
+# Compare winners across m rounds
 data.frame(player1 = hands_player1, 
            player2 = hands_player2 ) |> 
   mutate(winner = ifelse(player1 > player2, "player 1", "player 2")) |>
