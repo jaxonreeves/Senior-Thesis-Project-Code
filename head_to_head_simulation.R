@@ -126,8 +126,9 @@ hands_player2 <- sapply(hands4,
                           evaluate_7cards(c(starter_hands$player2, x))
                         })
 
-# Compare winners across m rounds
-data.frame(player1 = hands_player1, 
+# Compare winners across m rounds and output win rate for player1
+results <- data.frame(player1 = hands_player1, 
            player2 = hands_player2 ) |> 
   mutate(winner = ifelse(player1 > player2, "player 1", "player 2")) |>
   count(winner)
+results$n[1]/m
