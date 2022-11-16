@@ -135,8 +135,9 @@ This concludes the investigation into starting hand winning odds, with the moral
 For further refinement, this project could be updated to:
 
 * account for ties between player hands
-   * in this iteration, ties coutn as losses for player1/category1
+   * in this iteration, ties count as losses for player1/category1
 * automate the computation of average win rate
+* support string parameters for comparison selection rather than integers
 
 ## References
 
