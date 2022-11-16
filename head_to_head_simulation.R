@@ -1,7 +1,7 @@
 library(tidyverse) # for data wrangling and plotting
 source('evaluator/Constants.R')
 source('evaluator/FiveEval.R')
-source('evaluator/SevenEval.R') # takes awhile
+source('evaluator/SevenEval.R') # takes a while
 
 # Create deck with human-readable cards and numeric version for computing
 faces <- c('A','K','Q','J','T',9:2)
@@ -86,49 +86,84 @@ starting_hands <- list(rolled_up,
                        two_to_straight,
                        high_card)
 
-# TODO: make function to run simulation of single head-to-head
-# TODO: make function to run simulation of all 36 head-to-head (by calling above function)
+# Define function to run an individual head-to-head comparison and
+# return category1 win rate. Chooses n many pairs of starting hands from
+# the given categories and then simulates m many rounds with each pair of
+# starting hands, for a total of n*m many rounds simulated. Returns the
+# average win rate of category1 across all n*m many rounds
+head_to_head_comparison <- function(category1, category2, n, m) {
+    # Select specified starting hand categories
+    player1_category <- starting_hands[[category1]]
+    player2_category <- starting_hands[[category2]]
 
-## RUN SIMULATION TO ESTIMATE HEAD TO HEAD PROBABILITY
-# Choose starting hand categories
-player1_category <- starting_hands[[1]]
-player2_category <- starting_hands[[1]]
+    # Run n many simulations of the head-to-head category1 vs category2
+    # matchup and store category1 win rates
+    category1_win_rates <- replicate(n, expr = {
+        # Deal two players starting hands from chosen category and ensure no duplicate cards
+        player1 <- sample(player1_category,1)[[1]]
+        player2 <- sample(player2_category,1)[[1]]
+        starter_hands <- list(player1 = player1, player2 = player2)
+        while (any(duplicated(unlist(starter_hands)))) {
+            player2 <- sample(player2_category,1)[[1]]
+            starter_hands <- list(player1 = player1, player2 = player2)
+        }
 
-# Deal two players starting hands from chosen category and ensure no duplicate cards
-player1 <- sample(player1_category,1)[[1]]
-player2 <- sample(player2_category,1)[[1]]
-starter_hands <- list(player1 = player1, player2 = player2)
-while (any(duplicated(unlist(starter_hands)))) {
-    player2 <- sample(player2_category,1)[[1]]
-    starter_hands <- list(player1 = player1, player2 = player2)
+        # Convert the starter hands to numeric
+        starter_hands <- lapply(starter_hands, function(x){
+            as.numeric(deck_numeric[x])
+        })
+        all(!duplicated(unlist(starter_hands) )) # check: are all cards unique? (should be TRUE)
+        remaining_cards <- setdiff(0:51, unlist(starter_hands))
+
+        # Run m many simulations of the next 4 cards for each player
+        hands4 <- lapply(1:m, function(x){
+            sample(remaining_cards, 4)
+        })
+        hands_player1 <- sapply(hands4, function(x){ 
+                                    evaluate_7cards(c(starter_hands$player1, x))
+                                })
+        hands_player2 <- sapply(hands4, function(x){ 
+                                    evaluate_7cards(c(starter_hands$player2, x))
+                                })
+
+        # Compare winners across all m rounds and return win rate for player1
+        results <- data.frame(player1 = hands_player1, player2 = hands_player2 ) |> 
+                              mutate(winner = ifelse(player1 > player2, "player 1", "player 2")) |>
+                              count(winner)
+        results$n[1]/m
+    })
+
+    # Compute and return average win rate
+    return(mean(category1_win_rates))
 }
 
-# Convert the starter hands to numeric
-starter_hands <- lapply(starter_hands, function(x){
-  as.numeric(deck_numeric[x])
-})
-all(!duplicated(unlist(starter_hands) )) # check: are all cards unique? (should be TRUE)
-remaining_cards <- setdiff(0:51, unlist(starter_hands))
+# Define function to run all 36 possible pairings of head-to-head matchups
+# and return dataframe of results. Chooses n many pairs of starting hands
+# and simulates m many rounds for each pair.
+run_all_comparisons <- function(n, m) {
+    # Initialize dataframe
+    results_table <- data.frame(matrix(ncol = 6, nrow = 6))
+    colnames(results_table) <- c("    1  ", "    2  ", "    3  ",
+                                 "    4  ", "    5  ", "    6  ")
+    rownames(results_table) <- c("        Rolled Up | 1 |", "            Pairs | 2 |",
+                                 "  Three Big Cards | 3 |", "Three to Straight | 4 |",
+                                 "  Two to Straight | 5 |", "        High Card | 6 |")
 
-# Define sample size m for round simulation using current pair of starting hands
-m <- 1000
+    # Populate results_table
+    for (i in 1:6) {
+        for (j in 1:6) {
+            results_table[[j]][i] <- head_to_head_comparison(i, j, n, m)
+            cat(paste("Comparison", (i-1)*6+j, "of 36 done...\n"))
+        }
+    }
+    cat("Results:\n")
 
-# Simulate the next 4 cards for each player
-hands4 <- lapply(1:m, function(x){
-  sample(remaining_cards, 4)
-})
-hands_player1 <- sapply(hands4, 
-                        function(x){ 
-                          evaluate_7cards(c(starter_hands$player1, x))
-})
-hands_player2 <- sapply(hands4, 
-                        function(x){ 
-                          evaluate_7cards(c(starter_hands$player2, x))
-                        })
+    # Return results_table
+    return(results_table)
+}
 
-# Compare winners across m rounds and output win rate for player1
-results <- data.frame(player1 = hands_player1, 
-           player2 = hands_player2 ) |> 
-  mutate(winner = ifelse(player1 > player2, "player 1", "player 2")) |>
-  count(winner)
-results$n[1]/m
+# Run single head-to-head simulation (takes a while)
+#head_to_head_comparison(1, 1, 10000, 100)
+
+# Run all head-to-head simulations (takes a very long time)
+run_all_comparisons(1000, 100)
