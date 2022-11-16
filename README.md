@@ -1,4 +1,4 @@
-# Senior Thesis Project
+# Seven Card Stud Starting Hand Probabilities: A Senior Thesis Project
 
 * Author: Jaxon Reeves
 * Class: MATH 401
