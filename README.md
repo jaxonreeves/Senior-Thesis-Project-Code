@@ -130,6 +130,14 @@ There is noticeable separation between Pairs, Three Big Cards, and the rest, but
 
 This concludes the investigation into starting hand winning odds, with the moral of the story being: if you draw Rolled Up, be sure to bet early and often! However for any other category, it's very much a coin-flip to determine your chances of winning based solely on your starting hand.
 
+## Future Iterations
+
+For further refinement, this project could be updated to:
+
+* account for ties between player hands
+   * in this iteration, ties coutn as losses for player1/category1
+* automate the computation of average win rate
+
 ## References
 
 Two main references were used in this project:
